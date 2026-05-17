@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/YieldSaga/YieldSaga.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/YieldSaga.Tests/YieldSaga.Tests.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/TicTacToe/TicTacToe.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageId>YieldSaga</PackageId>
+    <Version>0.1.0-alpha</Version>
+    <Authors>PlayAgain Co., Ltd.</Authors>
+    <Company>PlayAgain Co., Ltd.</Company>
+    <Description>Intent → Saga → Effect → State framework for turn-based / step-based logic. Inspired by Redux-saga, algebraic effects, and workflow engines.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/PlayAgain-Co-Ltd/YieldSaga</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/PlayAgain-Co-Ltd/YieldSaga</PackageProjectUrl>
+    <PackageTags>saga;effects;turn-based;state-management;workflow;algebraic-effects</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="YieldSaga.Tests" />
+  </ItemGroup>
+
+</Project>
