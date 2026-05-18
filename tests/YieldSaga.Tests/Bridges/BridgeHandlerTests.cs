@@ -128,7 +128,7 @@ public class BridgeHandlerTests
     [Fact]
     public void Registry_extension_infers_all_generic_args()
     {
-        // RegisterBridge は registry → TFromState、bridge → TFromEffect/TToInput、
+        // RegisterBridge は registry → TFromState、bridge → TFromEvent/TToInput、
         // toRuntime → TToState を全部 inference させる
         var fromHandlers = new EffectHandlerRegistry<FromS>();
         var to = BuildToRuntime();

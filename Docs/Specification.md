@@ -304,14 +304,14 @@ immutable な handler 束。Pipeline 処理中の Signal に対する 3 種の�
 - Runtime のライフサイクルを State 単位で管理できる
 - Interceptor / EffectHandler の登録を State ごとに分割できる（型安全）
 
-### IBridge\<TFromEffect, TToInput\>
+### IBridge\<TFromEvent, TToInput\>
 
 複数 Runtime 間の連携は Bridge を書く。
 ```
-IEnumerable<TToInput> Bridge(TFromEffect effect)
+IEnumerable<TToInput> Bridge(TFromEvent ev)
 ```
 
-- 出処側 Runtime の `TFromEffect` が発火したら呼ばれる
+- 出処側 Runtime の `TFromEvent` が発火したら呼ばれる
 - 戻り値の `TToInput` は宛先 Runtime の `Update` に同期で流れる
 - `TToInput` は宛先の `IIntentProducer` が受け付ける型（Intent も Input もどちらでも可）
 - 単方向のみ（B→A も必要なら別 Bridge を書く）
@@ -376,7 +376,7 @@ external input → runtimeA.Update
 | 入力結線 | 外部入力 → Intent 列 | `IIntentProducer<TInput, TState>` |
 | 自動進行 | State を見て自動発火 | `IAutoIntentProducer<TState>`（任意） |
 | 観測 | 副作用 | `IEffectHandler<TEffect>` |
-| Runtime 連携 | 別 Runtime へ橋渡し | `IBridge<TFromEffect, TToInput>`（任意） |
+| Runtime 連携 | 別 Runtime へ橋渡し | `IBridge<TFromEvent, TToInput>`（任意） |
 
 フレームワーク側が提供するのは:
 `Effect` / `Event` / `Signal` / `Take` / `Query<T>` / `Call` / `Intent` / `InterceptResult` / `EffectPipeline` / `Runtime` / `EffectBatch` / `EffectDispatcher` / `IBridge` の配線基盤。
