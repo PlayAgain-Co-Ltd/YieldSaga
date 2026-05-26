@@ -32,10 +32,7 @@ public class MultiRuntimeBridgeTests
     private sealed class AddDamageProducer : IIntentProducer<AddDamageInput, Score>
     {
         public bool CanProduce(AddDamageInput input, Score state) => true;
-        public IEnumerable<Intent> Produce(AddDamageInput input, IStateProvider<Score> state)
-        {
-            yield return new AddDamageIntent(input.Amt);
-        }
+        public Intent Produce(AddDamageInput input, Score state) => new AddDamageIntent(input.Amt);
     }
     private sealed class AddDamageSaga : ISaga<AddDamageIntent>
     {
@@ -58,10 +55,7 @@ public class MultiRuntimeBridgeTests
     private sealed class NotifyProducer : IIntentProducer<NotifyInput, Notice>
     {
         public bool CanProduce(NotifyInput input, Notice state) => true;
-        public IEnumerable<Intent> Produce(NotifyInput input, IStateProvider<Notice> state)
-        {
-            yield return new NotifyIntent(input.Amt);
-        }
+        public Intent Produce(NotifyInput input, Notice state) => new NotifyIntent(input.Amt);
     }
     private sealed class NotifySaga : ISaga<NotifyIntent>
     {

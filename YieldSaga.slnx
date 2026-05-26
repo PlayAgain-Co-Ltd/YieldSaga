@@ -1,11 +1,14 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/YieldSaga/YieldSaga.csproj" />
+    <Project Path="src/YieldSaga.Extensions.DependencyInjection/YieldSaga.Extensions.DependencyInjection.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/YieldSaga.Tests/YieldSaga.Tests.csproj" />
+    <Project Path="tests/YieldSaga.Extensions.DependencyInjection.Tests/YieldSaga.Extensions.DependencyInjection.Tests.csproj" />
   </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/TicTacToe/TicTacToe.csproj" />
+    <Project Path="samples/TicTacToe.Di/TicTacToe.Di.csproj" />
   </Folder>
 </Solution>

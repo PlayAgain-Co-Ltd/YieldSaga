@@ -1,42 +1,27 @@
 using System.Collections.Immutable;
+using Microsoft.Extensions.DependencyInjection;
+using TicTacToe;
 using YieldSaga;
+using YieldSaga.Extensions.DependencyInjection;
 
-namespace TicTacToe;
-
-// ─── Program (Runtime を組み立てて回す) ────────────────────────
+namespace TicTacToe.Di;
 
 public static class Program
 {
     public static void Main()
     {
-        var sagas = new SagaRegistry();
-        sagas.Register(new HumanTurnSaga());
-        sagas.Register(new CpuTurnSaga());
+        var services = new ServiceCollection();
+        services.AddYieldSagaRuntime<TicTacToeState>(b => b
+            .WithInitialState(TicTacToeState.Initial)
+            .ScanFromAssemblyOf<HumanTurnSaga>());
+        services.AddSingleton<Sender, GameSender>();
 
-        var appliers = new EventApplierRegistry<TicTacToeState>();
-        appliers.Register(new MarkPlacedApplier());
-        appliers.Register(new GameWonApplier());
-        appliers.Register(new GameDrawApplier());
+        using var sp = services.BuildServiceProvider();
+        var runtime = sp.GetRequiredService<Runtime<TicTacToeState>>();
+        var sender = sp.GetRequiredService<Sender>();
 
-        var interceptors = new InterceptorRegistry<TicTacToeState>();
-        interceptors.Register(new WinDetectionInterceptor());
+        Console.WriteLine("Tic-Tac-Toe (You: X, CPU: O) — DI edition\n");
 
-        var auto = new AutoIntentProducerRegistry<TicTacToeState>();
-        auto.Register(new HumanTurnProducer());
-        auto.Register(new CpuTurnProducer());
-
-        var runtime = new Runtime<TicTacToeState>(
-            TicTacToeState.Initial,
-            sagas,
-            appliers,
-            interceptors,
-            autoProducers: auto);
-
-        var sender = new GameSender();
-
-        Console.WriteLine("Tic-Tac-Toe (You: X, CPU: O)\n");
-
-        // Tick で自走ループを始動: 初手は X (人間) なので HumanTurnSaga が Take を出して即中断。
         runtime.Tick(sender);
 
         while (!runtime.Latest.GameOver)
@@ -46,7 +31,6 @@ public static class Program
                 var prompt = (MovePrompt)runtime.PendingTake!.Prompt;
                 PrintBoard(runtime.Latest.Board);
                 int cell = AskCell(prompt);
-                // Resume すると saga が再開し、その後 auto-loop が CPU 手番まで進めて再中断 or 終了。
                 runtime.Resume(cell);
             }
             else

@@ -3,7 +3,7 @@ namespace YieldSaga;
 /// <summary>
 /// 外部入力型 → IIntentProducer のディスパッチテーブル。
 /// 入力型ごとに複数の Producer を登録でき、TryProduce 時は CanProduce を満たす最初の
-/// Producer を選ぶ（登録順）。
+/// Producer の単一 Intent を返す（登録順）。
 ///
 /// 入力型のルックアップは <c>typeof(TInput)</c> で行う（コンパイル時型で完全一致）。
 /// 多相が必要なら、共通インターフェースを TInput にして個別の Producer をその傘下にぶら下げる。
@@ -24,15 +24,14 @@ public sealed class IntentProducerRegistry<TState>
     }
 
     /// <summary>
-    /// 入力にマッチする最初の Producer の Intent 列を返す。
+    /// 入力にマッチする最初の Producer の単一 Intent を返す。
     /// 入力型未登録、あるいは全 Producer が CanProduce=false なら false。
     /// </summary>
-    public bool TryProduce<TInput>(TInput input, IStateProvider<TState> state, out IEnumerable<Intent> intents)
+    public bool TryProduce<TInput>(TInput input, TState state, out Intent intent)
     {
-        ArgumentNullException.ThrowIfNull(state);
         if (_buckets.TryGetValue(typeof(TInput), out var bucket))
-            return ((Bucket<TInput>)bucket).TryProduce(input, state, out intents);
-        intents = Array.Empty<Intent>();
+            return ((Bucket<TInput>)bucket).TryProduce(input, state, out intent);
+        intent = null!;
         return false;
     }
 
@@ -42,17 +41,17 @@ public sealed class IntentProducerRegistry<TState>
 
         public void Add(IIntentProducer<TInput, TState> p) => _producers.Add(p);
 
-        public bool TryProduce(TInput input, IStateProvider<TState> state, out IEnumerable<Intent> intents)
+        public bool TryProduce(TInput input, TState state, out Intent intent)
         {
             foreach (var p in _producers)
             {
-                if (p.CanProduce(input, state.Current))
+                if (p.CanProduce(input, state))
                 {
-                    intents = p.Produce(input, state);
+                    intent = p.Produce(input, state);
                     return true;
                 }
             }
-            intents = Array.Empty<Intent>();
+            intent = null!;
             return false;
         }
     }

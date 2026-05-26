@@ -26,13 +26,21 @@ public class DispatcherEndToEndTests
     }
 
     private sealed record Pulse(int By);
+    private sealed record PulseIntent(int By) : Intent;
+
     private sealed class PulseProducer : IIntentProducer<Pulse, Counter>
     {
         public bool CanProduce(Pulse input, Counter state) => true;
-        public IEnumerable<Intent> Produce(Pulse input, IStateProvider<Counter> state)
+        public Intent Produce(Pulse input, Counter state) => new PulseIntent(input.By);
+    }
+
+    // 1 Pulse → 2 AddedEvent。Producer narrow 後はこの「列展開」を Saga 側で持つ。
+    private sealed class PulseSaga : ISaga<PulseIntent>
+    {
+        public IEnumerable<Effect> Run(PulseIntent intent, Sender sender)
         {
-            yield return new AddIntent(input.By);
-            yield return new AddIntent(input.By * 2);
+            yield return new AddedEvent(intent.By);
+            yield return new AddedEvent(intent.By * 2);
         }
     }
 
@@ -51,6 +59,7 @@ public class DispatcherEndToEndTests
     {
         var sagas = new SagaRegistry();
         sagas.Register(new AddSaga());
+        sagas.Register(new PulseSaga());
         var appliers = new EventApplierRegistry<Counter>();
         appliers.Register(new AddApplier());
         var producers = new IntentProducerRegistry<Counter>();
@@ -105,8 +114,7 @@ public class DispatcherEndToEndTests
     {
         public IEnumerable<Effect> Run(AskIntent intent, Sender sender)
         {
-            var take = new Take(new AnyIntPrompt());
-            yield return take;
+            yield return new Take(new AnyIntPrompt());
         }
     }
 

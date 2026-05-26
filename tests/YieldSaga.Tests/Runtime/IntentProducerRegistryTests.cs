@@ -20,32 +20,25 @@ public class IntentProducerRegistryTests
             _tag = tag; _gate = gate;
         }
         public bool CanProduce(FooInput input, State state) => _gate(input, state);
-        public IEnumerable<Intent> Produce(FooInput input, IStateProvider<State> state)
-        {
-            yield return new TaggedIntent($"{_tag}:{input.N}");
-        }
+        public Intent Produce(FooInput input, State state) => new TaggedIntent($"{_tag}:{input.N}");
     }
 
     private sealed class BarProducer : IIntentProducer<BarInput, State>
     {
         public bool CanProduce(BarInput input, State state) => true;
-        public IEnumerable<Intent> Produce(BarInput input, IStateProvider<State> state)
-        {
-            yield return new TaggedIntent($"bar:{input.S}");
-        }
+        public Intent Produce(BarInput input, State state) => new TaggedIntent($"bar:{input.S}");
     }
 
     [Fact]
-    public void TryProduce_returns_intents_from_matching_producer()
+    public void TryProduce_returns_intent_from_matching_producer()
     {
         var reg = new IntentProducerRegistry<State>();
         reg.Register(new FooProducer("foo", (_, _) => true));
 
-        var ok = reg.TryProduce(new FooInput(7), new Snapshot(new State(0)), out var intents);
+        var ok = reg.TryProduce(new FooInput(7), new State(0), out var intent);
 
         Assert.True(ok);
-        var single = Assert.Single(intents);
-        Assert.Equal(new TaggedIntent("foo:7"), single);
+        Assert.Equal(new TaggedIntent("foo:7"), intent);
     }
 
     [Fact]
@@ -55,12 +48,11 @@ public class IntentProducerRegistryTests
         reg.Register(new FooProducer("first", (i, _) => i.N > 10));
         reg.Register(new FooProducer("second", (_, _) => true));
 
-        // first は N>10 のときだけ、それ以外は second
-        Assert.True(reg.TryProduce(new FooInput(20), new Snapshot(new State(0)), out var hi));
-        Assert.Equal(new TaggedIntent("first:20"), hi.Single());
+        Assert.True(reg.TryProduce(new FooInput(20), new State(0), out var hi));
+        Assert.Equal(new TaggedIntent("first:20"), hi);
 
-        Assert.True(reg.TryProduce(new FooInput(5), new Snapshot(new State(0)), out var lo));
-        Assert.Equal(new TaggedIntent("second:5"), lo.Single());
+        Assert.True(reg.TryProduce(new FooInput(5), new State(0), out var lo));
+        Assert.Equal(new TaggedIntent("second:5"), lo);
     }
 
     [Fact]
@@ -69,8 +61,8 @@ public class IntentProducerRegistryTests
         var reg = new IntentProducerRegistry<State>();
         reg.Register(new FooProducer("gated", (_, s) => s.Value >= 100));
 
-        Assert.False(reg.TryProduce(new FooInput(1), new Snapshot(new State(0)), out _));
-        Assert.True(reg.TryProduce(new FooInput(1), new Snapshot(new State(200)), out _));
+        Assert.False(reg.TryProduce(new FooInput(1), new State(0), out _));
+        Assert.True(reg.TryProduce(new FooInput(1), new State(200), out _));
     }
 
     [Fact]
@@ -80,11 +72,11 @@ public class IntentProducerRegistryTests
         reg.Register(new FooProducer("foo", (_, _) => true));
         reg.Register(new BarProducer());
 
-        Assert.True(reg.TryProduce(new FooInput(1), new Snapshot(new State(0)), out var fooIntents));
-        Assert.Equal(new TaggedIntent("foo:1"), fooIntents.Single());
+        Assert.True(reg.TryProduce(new FooInput(1), new State(0), out var fooIntent));
+        Assert.Equal(new TaggedIntent("foo:1"), fooIntent);
 
-        Assert.True(reg.TryProduce(new BarInput("hi"), new Snapshot(new State(0)), out var barIntents));
-        Assert.Equal(new TaggedIntent("bar:hi"), barIntents.Single());
+        Assert.True(reg.TryProduce(new BarInput("hi"), new State(0), out var barIntent));
+        Assert.Equal(new TaggedIntent("bar:hi"), barIntent);
     }
 
     [Fact]
@@ -93,8 +85,8 @@ public class IntentProducerRegistryTests
         var reg = new IntentProducerRegistry<State>();
         reg.Register(new BarProducer());
 
-        Assert.False(reg.TryProduce(new FooInput(1), new Snapshot(new State(0)), out var intents));
-        Assert.Empty(intents);
+        Assert.False(reg.TryProduce(new FooInput(1), new State(0), out var intent));
+        Assert.Null(intent);
     }
 
     [Fact]
@@ -104,9 +96,7 @@ public class IntentProducerRegistryTests
         reg.Register(new FooProducer("a", (_, _) => false));
         reg.Register(new FooProducer("b", (_, _) => false));
 
-        Assert.False(reg.TryProduce(new FooInput(0), new Snapshot(new State(0)), out var intents));
-        Assert.Empty(intents);
+        Assert.False(reg.TryProduce(new FooInput(0), new State(0), out var intent));
+        Assert.Null(intent);
     }
-
-    private sealed record Snapshot(State Current) : IStateProvider<State>;
 }

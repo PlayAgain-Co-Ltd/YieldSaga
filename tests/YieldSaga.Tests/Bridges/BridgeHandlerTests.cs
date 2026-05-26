@@ -21,10 +21,7 @@ public class BridgeHandlerTests
     private sealed class AddInputProducer : IIntentProducer<AddInput, ToS>
     {
         public bool CanProduce(AddInput input, ToS state) => true;
-        public IEnumerable<Intent> Produce(AddInput input, IStateProvider<ToS> state)
-        {
-            yield return new AddIntent(input.N);
-        }
+        public Intent Produce(AddInput input, ToS state) => new AddIntent(input.N);
     }
 
     private sealed class AddSaga : ISaga<AddIntent>

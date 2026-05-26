@@ -2,7 +2,7 @@ namespace YieldSaga;
 
 /// <summary>
 /// 自走進行用 Producer のディスパッチテーブル。
-/// TryProduce は CanProduce を満たす最初の Producer を選ぶ（登録順）。
+/// TryProduce は CanProduce を満たす最初の Producer を選び、その単一 Intent を返す（登録順）。
 ///
 /// Runtime の自走ループは、これが false を返すまで（fixed-point）繰り返し呼ぶ。
 /// </summary>
@@ -16,18 +16,17 @@ public sealed class AutoIntentProducerRegistry<TState>
         _producers.Add(producer);
     }
 
-    public bool TryProduce(IStateProvider<TState> state, out IEnumerable<Intent> intents)
+    public bool TryProduce(TState state, out Intent intent)
     {
-        ArgumentNullException.ThrowIfNull(state);
         foreach (var p in _producers)
         {
-            if (p.CanProduce(state.Current))
+            if (p.CanProduce(state))
             {
-                intents = p.Produce(state);
+                intent = p.Produce(state);
                 return true;
             }
         }
-        intents = Array.Empty<Intent>();
+        intent = null!;
         return false;
     }
 }

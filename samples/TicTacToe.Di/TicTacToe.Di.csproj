@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>TicTacToe.Di</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\YieldSaga\YieldSaga.csproj" />
+    <ProjectReference Include="..\..\src\YieldSaga.Extensions.DependencyInjection\YieldSaga.Extensions.DependencyInjection.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Share the domain types (Saga / Applier / Interceptor / Producer / Events / Intents) with the
+         hand-wired TicTacToe sample. Only Program.cs differs between the two samples. -->
+    <Compile Include="..\TicTacToe\Domain.cs" Link="Domain.cs" />
+  </ItemGroup>
+
+</Project>

@@ -18,4 +18,35 @@ public static class Read
         holder = new Query<TState>();
         return holder;
     }
+
+    /// <summary>
+    /// 入力待ち Take を生成して out で同時に返す（untyped Prompt 版）。SF2 の <c>Read.Input&lt;TInput&gt;</c> と同じ書き味。
+    /// <code>
+    /// yield return Read.Input&lt;int&gt;(out var move, somePrompt);
+    /// yield return new MarkPlacedEvent(move.Value, ...);
+    /// </code>
+    /// yield 直後 (= Resume で入力が到着したあと) に <c>move.Value</c> が typed で埋まる。
+    /// 素の <see cref="Take"/> と違って cast / null-forgive 不要。
+    /// </summary>
+    public static Take<TInput> Input<TInput>(out Take<TInput> holder, Prompt prompt)
+        where TInput : notnull
+    {
+        holder = new Take<TInput>(prompt);
+        return holder;
+    }
+
+    /// <summary>
+    /// 入力待ち Take を生成して out で同時に返す（typed <see cref="Prompt{TInput}"/> 版、型引数省略可）。
+    /// Prompt が自身の入力型を知っているので、呼び出し側で <c>&lt;int&gt;</c> 明示が要らない:
+    /// <code>
+    /// yield return Read.Input(out var move, new MovePrompt(...));   // MovePrompt : Prompt&lt;int&gt;
+    /// yield return new MarkPlacedEvent(move.Value, ...);
+    /// </code>
+    /// </summary>
+    public static Take<TInput> Input<TInput>(out Take<TInput> holder, Prompt<TInput> prompt)
+        where TInput : notnull
+    {
+        holder = new Take<TInput>(prompt);
+        return holder;
+    }
 }

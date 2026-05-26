@@ -30,11 +30,11 @@ public sealed class Runtime<TState>
     private IEnumerator<Effect>? _suspended;
     private Take? _pendingTake;
 
-    // Update / Tick で積まれた残り Intent と、その完走後に自走を回すか
-    private IEnumerator<Intent>? _pendingIntents;
+    // Update 中の Take 中断は無くなった (Producer は単一 Intent narrow)
+    // ただし autoLoop からの中断は次 Tick まで継続するため、autoAfter フラグだけ保持
     private Sender? _pendingSender;
     private bool _autoAfterPending;
-    private SignalScope? _pendingScope;   // 残り Intent / autoLoop 用の composite scope
+    private SignalScope? _pendingScope;   // autoLoop 用の composite scope
 
     public Runtime(
         TState initial,
@@ -118,12 +118,21 @@ public sealed class Runtime<TState>
         if (_producers is null)
             throw new InvalidOperationException("Update requires an IntentProducerRegistry. None was configured.");
 
-        if (!_producers.TryProduce(input, StateProvider, out var intents))
+        if (!_producers.TryProduce(input, Latest, out var intent))
             throw new InvalidOperationException($"No IIntentProducer matched input of type {typeof(TInput).Name}.");
 
         var effective = BuildScope(scope);
         var trace = new List<(Effect, TState)>();
-        RunIntentSequence(intents.GetEnumerator(), sender, effective, andAutoAfter: true, trace);
+        DispatchOne(intent, sender, effective, trace);
+        if (IsPaused)
+        {
+            // Update の Intent が Take で中断 → 続きの autoLoop は Resume 後に
+            _pendingSender = sender;
+            _pendingScope = effective;
+            _autoAfterPending = true;
+            return trace;
+        }
+        RunAutoLoop(sender, effective, trace);
         return trace;
     }
 
@@ -169,77 +178,40 @@ public sealed class Runtime<TState>
         if (IsPaused)
             return trace; // 同 saga 内の別 Take で再び停まった
 
-        // Update/Tick で積まれていた残り Intent と自走ループを引き継ぐ
-        if (_pendingIntents is not null)
+        // Update/Tick 中に保留された自走ループを引き継ぐ
+        if (_autoAfterPending)
         {
-            var pendingIntents = _pendingIntents;
             var pendingSender = _pendingSender!;
-            var andAuto = _autoAfterPending;
             var followOnScope = scope is null
                 ? _pendingScope!
                 : _pendingScope!.Merge(scope);
-            _pendingIntents = null;
             _pendingSender = null;
             _pendingScope = null;
             _autoAfterPending = false;
-            RunIntentSequence(pendingIntents, pendingSender, followOnScope, andAuto, trace);
+            RunAutoLoop(pendingSender, followOnScope, trace);
         }
         return trace;
     }
 
     /// <summary>
-    /// Intent 列を順に Dispatch する。中断したら残り iterator を保持して即帰る。
-    /// すべて完走したら、必要に応じて自走ループを回す。
-    /// </summary>
-    private void RunIntentSequence(
-        IEnumerator<Intent> intents,
-        Sender sender,
-        SignalScope scope,
-        bool andAutoAfter,
-        List<(Effect, TState)> trace)
-    {
-        while (intents.MoveNext())
-        {
-            DispatchOne(intents.Current, sender, scope, trace);
-            if (IsPaused)
-            {
-                _pendingIntents = intents;
-                _pendingSender = sender;
-                _pendingScope = scope;
-                _autoAfterPending = andAutoAfter;
-                return;
-            }
-        }
-        intents.Dispose();
-        if (andAutoAfter)
-            RunAutoLoop(sender, scope, trace);
-    }
-
-    /// <summary>
-    /// CanProduce を満たす Auto Producer が無くなるまで、見つけた Producer の Intent 列を順次 Dispatch する。
-    /// 中断したら残り iterator を保持（andAutoAfter=true で）して即帰る。
+    /// CanProduce を満たす Auto Producer が無くなるまで、単一 Intent を順次 Dispatch する。
+    /// 中断したら次 Resume に再開を引き継ぐため pendingSender/Scope/autoAfter を保持して即帰る。
     /// </summary>
     private void RunAutoLoop(Sender sender, SignalScope scope, List<(Effect, TState)> trace)
     {
         if (_autoProducers is null) return;
         while (true)
         {
-            if (!_autoProducers.TryProduce(StateProvider, out var autoIntents))
+            if (!_autoProducers.TryProduce(Latest, out var intent))
                 return;
-            var iter = autoIntents.GetEnumerator();
-            while (iter.MoveNext())
+            DispatchOne(intent, sender, scope, trace);
+            if (IsPaused)
             {
-                DispatchOne(iter.Current, sender, scope, trace);
-                if (IsPaused)
-                {
-                    _pendingIntents = iter;
-                    _pendingSender = sender;
-                    _pendingScope = scope;
-                    _autoAfterPending = true;
-                    return;
-                }
+                _pendingSender = sender;
+                _pendingScope = scope;
+                _autoAfterPending = true;
+                return;
             }
-            iter.Dispose();
         }
     }
 
